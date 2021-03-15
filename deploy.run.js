@@ -8,6 +8,7 @@ const SCRIPT_NAME = "cell_x-pl_art";
 const ROUTE_PATTERN = "cell.x-pl.art/*";
 
 import { CF_API_TOKEN, CF_ACCOUNT_ID, CF_ZONE_ID } from "./secrets.js";
+import build from "./build.js"
 
 
 import { ky, CloudflareDurableObjects } from "./Cloudflare";
@@ -19,7 +20,7 @@ export async function deploy() {
     });
     
     const files = {
-        "worker.js": fs.readFileSync("worker.js"),
+        "worker.js": await build(),
     };
     
     const namespacesCachePromise = cf.durableObjectNamespaceList(CF_ACCOUNT_ID);
@@ -29,7 +30,7 @@ export async function deploy() {
                 ?? (await cf.durableObjectNamespaceCreate(CF_ACCOUNT_ID, SCRIPT_NAME, className));
         return namespace.id;
     }
-
+    
     // upload bootstrap script
     await cf.scriptUploadModule(CF_ACCOUNT_ID, SCRIPT_NAME, {main_module: "worker.js"}, files);
 
@@ -39,6 +40,10 @@ export async function deploy() {
             "type": "durable_object_namespace",
             "name": "feeds",
             "namespace_id": await upsertNamespace("Feed"),
+        }, {
+            "type": "durable_object_namespace",
+            "name": "automata",
+            "namespace_id": await upsertNamespace("Automaton"),
         }],
     };
     
